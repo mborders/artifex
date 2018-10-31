@@ -3,3 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mborders/job-queue)](https://goreportcard.com/report/github.com/mborders/job-queue)
 
 # job-queue
+
+Simplified job queue for Golang using worker-based dispatching
+
+Documentation here: https://godoc.org/github.com/mborders/job-queue
