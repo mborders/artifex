@@ -60,9 +60,10 @@ func TestDispatcher_DispatchIn(t *testing.T) {
 	d := NewDispatcher(1, 1)
 	d.Run()
 
-	d.DispatchIn(Job{Run: func() {
+	err := d.DispatchIn(Job{Run: func() {
 		v = true
 	}}, time.Millisecond*300)
+	assert.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 	assert.False(t, v)
@@ -94,9 +95,11 @@ func TestDispatcher_DispatchEvery_Stop(t *testing.T) {
 	d := NewDispatcher(1, 3)
 	d.Run()
 
-	dt := d.DispatchEvery(Job{Run: func() {
+	dt, err := d.DispatchEvery(Job{Run: func() {
 		c++
 	}}, time.Millisecond*100)
+
+	assert.Nil(t, err)
 
 	time.Sleep(time.Millisecond * 550)
 	assert.Equal(t, 5, c)
@@ -104,4 +107,36 @@ func TestDispatcher_DispatchEvery_Stop(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 500)
 	assert.Equal(t, 5, c)
+}
+
+func TestDispatcher_Stop(t *testing.T) {
+	c := 0
+
+	d := NewDispatcher(1, 3)
+	d.Run()
+
+	d.Dispatch(Job{Run: func() {
+		c++
+	}})
+
+	time.Sleep(time.Millisecond * 100)
+	d.Stop()
+
+	d.Dispatch(Job{Run: func() {
+		c++
+	}})
+
+	err := d.DispatchIn(Job{Run: func() {
+	}}, time.Millisecond*100)
+	assert.NotNil(t, err)
+
+	_, err = d.DispatchEvery(Job{Run: func() {
+		c++
+	}}, time.Millisecond*100)
+	assert.NotNil(t, err)
+
+	time.Sleep(time.Millisecond * 100)
+	assert.Equal(t, 1, c)
+
+	time.Sleep(time.Second)
 }
