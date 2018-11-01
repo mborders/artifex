@@ -1,4 +1,4 @@
-package queue
+package artifex
 
 import (
 	"github.com/stretchr/testify/assert"

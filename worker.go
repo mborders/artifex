@@ -1,4 +1,4 @@
-package queue
+package artifex
 
 // Worker attaches to a provided worker pool, and
 // looks for jobs on its job channel
