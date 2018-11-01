@@ -2,17 +2,18 @@ package artifex
 
 import (
 	"errors"
-	"fmt"
 	"time"
 )
 
 // Dispatcher maintains a pool for available workers
 // and a job queue that workers will process
 type Dispatcher struct {
-	WorkerPool chan chan Job
-	JobQueue   chan Job
 	maxWorkers int
-	workers    []Worker
+	maxQueue   int
+	workers    []*Worker
+	tickers    []*DispatchTicker
+	workerPool chan chan Job
+	jobQueue   chan Job
 	quit       chan bool
 	active     bool
 }
@@ -22,45 +23,75 @@ type Dispatcher struct {
 // It also initializes the channels for the worker pool and job queue
 func NewDispatcher(maxWorkers int, maxQueue int) *Dispatcher {
 	return &Dispatcher{
-		WorkerPool: make(chan chan Job, maxWorkers),
-		JobQueue:   make(chan Job, maxQueue),
 		maxWorkers: maxWorkers,
-		workers:    []Worker{},
-		quit:       make(chan bool),
+		maxQueue:   maxQueue,
 	}
 }
 
-// Run creates and starts workers, adding them to the worker pool.
+// Start creates and starts workers, adding them to the worker pool.
 // Then, it starts a select loop to wait for job to be dispatched
 // to available workers
-func (d *Dispatcher) Run() {
+func (d *Dispatcher) Start() {
+	d.workers = []*Worker{}
+	d.tickers = []*DispatchTicker{}
+	d.workerPool = make(chan chan Job, d.maxWorkers)
+	d.jobQueue = make(chan Job, d.maxQueue)
+	d.quit = make(chan bool)
+
 	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewWorker(fmt.Sprintf("%d", i), d.WorkerPool)
+		worker := NewWorker(d.workerPool)
 		worker.Start()
 		d.workers = append(d.workers, worker)
 	}
 
 	d.active = true
-	go d.start()
+
+	go func() {
+		for {
+			select {
+			case job := <-d.jobQueue:
+				go func(job Job) {
+					jobChannel := <-d.workerPool
+					jobChannel <- job
+				}(job)
+			case <-d.quit:
+				return
+			}
+		}
+	}()
 }
 
+// Stop ends execution for all workers/tickers and
+// closes all channels, then removes all workers/tickers
 func (d *Dispatcher) Stop() {
+	if !d.active {
+		return
+	}
+
+	d.active = false
+
 	for i := range d.workers {
 		d.workers[i].Stop()
 	}
 
-	d.active = false
+	for i := range d.tickers {
+		d.tickers[i].Stop()
+	}
+
+	d.workers = []*Worker{}
+	d.tickers = []*DispatchTicker{}
 	d.quit <- true
 }
 
 // Dispatch pushes the given job into the job queue.
 // The first available worker will perform the job
-func (d *Dispatcher) Dispatch(job Job) {
+func (d *Dispatcher) Dispatch(job Job) error {
 	if !d.active {
-		return
+		return errors.New("dispatcher is not active")
 	}
 
-	d.JobQueue <- job
+	d.jobQueue <- job
+	return nil
 }
 
 // DispatchIn pushes the given job into the job queue
@@ -72,7 +103,7 @@ func (d *Dispatcher) DispatchIn(job Job, duration time.Duration) error {
 
 	go func() {
 		time.Sleep(duration)
-		d.JobQueue <- job
+		d.jobQueue <- job
 	}()
 
 	return nil
@@ -87,12 +118,13 @@ func (d *Dispatcher) DispatchEvery(job Job, interval time.Duration) (*DispatchTi
 
 	t := time.NewTicker(interval)
 	dt := &DispatchTicker{ticker: t, quit: make(chan bool)}
+	d.tickers = append(d.tickers, dt)
 
 	go func() {
 		for {
 			select {
 			case <-t.C:
-				d.JobQueue <- job
+				d.jobQueue <- job
 			case <-dt.quit:
 				return
 			}
@@ -100,20 +132,6 @@ func (d *Dispatcher) DispatchEvery(job Job, interval time.Duration) (*DispatchTi
 	}()
 
 	return dt, nil
-}
-
-func (d *Dispatcher) start() {
-	for {
-		select {
-		case job := <-d.JobQueue:
-			go func(job Job) {
-				jobChannel := <-d.WorkerPool
-				jobChannel <- job
-			}(job)
-		case <-d.quit:
-			return
-		}
-	}
 }
 
 // DispatchTicker represents a dispatched job ticker
