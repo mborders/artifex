@@ -85,25 +85,25 @@ func (d *Dispatcher) Stop() {
 
 // Dispatch pushes the given job into the job queue.
 // The first available worker will perform the job
-func (d *Dispatcher) Dispatch(job Job) error {
+func (d *Dispatcher) Dispatch(run func()) error {
 	if !d.active {
 		return errors.New("dispatcher is not active")
 	}
 
-	d.jobQueue <- job
+	d.jobQueue <- Job{Run: run}
 	return nil
 }
 
 // DispatchIn pushes the given job into the job queue
 // after the given duration has elapsed
-func (d *Dispatcher) DispatchIn(job Job, duration time.Duration) error {
+func (d *Dispatcher) DispatchIn(run func(), duration time.Duration) error {
 	if !d.active {
 		return errors.New("dispatcher is not active")
 	}
 
 	go func() {
 		time.Sleep(duration)
-		d.jobQueue <- job
+		d.jobQueue <- Job{Run: run}
 	}()
 
 	return nil
@@ -111,7 +111,7 @@ func (d *Dispatcher) DispatchIn(job Job, duration time.Duration) error {
 
 // DispatchEvery pushes the given job into the job queue
 // continuously at the given interval
-func (d *Dispatcher) DispatchEvery(job Job, interval time.Duration) (*DispatchTicker, error) {
+func (d *Dispatcher) DispatchEvery(run func(), interval time.Duration) (*DispatchTicker, error) {
 	if !d.active {
 		return nil, errors.New("dispatcher is not active")
 	}
@@ -124,7 +124,7 @@ func (d *Dispatcher) DispatchEvery(job Job, interval time.Duration) (*DispatchTi
 		for {
 			select {
 			case <-t.C:
-				d.jobQueue <- job
+				d.jobQueue <- Job{Run: run}
 			case <-dt.quit:
 				return
 			}
