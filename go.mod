@@ -1,4 +1,4 @@
-module github.com/alphaterra/artifex
+module github.com/borderstech/artifex
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
