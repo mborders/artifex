@@ -89,6 +89,28 @@ func TestDispatcher_DispatchEvery(t *testing.T) {
 	assert.Equal(t, 3, c)
 }
 
+func TestDispatcher_DispatchEvery_Multiple(t *testing.T) {
+	d := NewDispatcher(10, 10)
+	d.Start()
+
+	a := 0
+	b := 0
+
+	d.DispatchEvery(func() {
+		a++
+	}, time.Millisecond * 100)
+
+	d.DispatchEvery(func() {
+		b++
+	}, time.Millisecond * 200)
+
+	time.Sleep(time.Millisecond * 1050)
+	d.Stop()
+
+	assert.Equal(t, 10, a)
+	assert.Equal(t, 5, b)
+}
+
 func TestDispatcher_DispatchEvery_Stop(t *testing.T) {
 	c := 0
 
