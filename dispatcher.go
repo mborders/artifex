@@ -19,7 +19,7 @@ type Dispatcher struct {
 }
 
 // NewDispatcher creates a new dispatcher with the given
-// number of works and buffers the job queue based on maxQueue.
+// number of workers and buffers the job queue based on maxQueue.
 // It also initializes the channels for the worker pool and job queue
 func NewDispatcher(maxWorkers int, maxQueue int) *Dispatcher {
 	return &Dispatcher{
