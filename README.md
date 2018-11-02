@@ -16,22 +16,22 @@ Documentation here: https://godoc.org/github.com/alphaterra/artifex
 d := artifex.NewDispatcher(10, 100)
 d.Run()
 
-d.Dispatch(artifex.Job{Run: func() {
+d.Dispatch(func() {
   // do something
-}})
+})
 
-err := d.DispatchIn(artifex.Job{Run: func() {
+err := d.DispatchIn(func() {
   // do something in 500ms
-}}, time.Millisecond*500)
+}, time.Millisecond*500)
 
 // Returns a DispatchTicker
-dt, err := d.DispatchEvery(artifex.Job{Run: func() {
+dt, err := d.DispatchEvery(func() {
   // do something every 250ms
-}}, time.Millisecond*250)
+}, time.Millisecond*250)
 
 // Stop a given DispatchTicker
 dt.Stop()
 
-// Stop a dispatcher and all its workers
+// Stop a dispatcher and all its workers/tickers
 d.Stop()
 ```
