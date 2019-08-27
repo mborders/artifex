@@ -1,10 +1,11 @@
 package artifex
 
 import (
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDispatcher_Dispatch(t *testing.T) {
@@ -98,11 +99,11 @@ func TestDispatcher_DispatchEvery_Multiple(t *testing.T) {
 
 	d.DispatchEvery(func() {
 		a++
-	}, time.Millisecond * 100)
+	}, time.Millisecond*100)
 
 	d.DispatchEvery(func() {
 		b++
-	}, time.Millisecond * 200)
+	}, time.Millisecond*200)
 
 	time.Sleep(time.Millisecond * 1050)
 	d.Stop()
