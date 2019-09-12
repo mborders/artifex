@@ -14,7 +14,7 @@ Documentation here: https://godoc.org/github.com/borderstech/artifex
 ```go
 // 10 workers, 100 max in job queue
 d := artifex.NewDispatcher(10, 100)
-d.Run()
+d.Start()
 
 d.Dispatch(func() {
   // do something
