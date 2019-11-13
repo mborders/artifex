@@ -1,13 +1,13 @@
-[![GoDoc](http://godoc.org/github.com/borderstech/artifex?status.png)](http://godoc.org/github.com/borderstech/artifex)
-[![Build Status](https://travis-ci.org/borderstech/artifex.svg?branch=master)](https://travis-ci.org/borderstech/artifex)
-[![Go Report Card](https://goreportcard.com/badge/github.com/borderstech/artifex)](https://goreportcard.com/report/github.com/borderstech/artifex)
-[![codecov](https://codecov.io/gh/borderstech/artifex/branch/master/graph/badge.svg)](https://codecov.io/gh/borderstech/artifex)
+[![GoDoc](http://godoc.org/github.com/mborders/artifex?status.png)](http://godoc.org/github.com/mborders/artifex)
+[![Build Status](https://travis-ci.org/mborders/artifex.svg?branch=master)](https://travis-ci.org/mborders/artifex)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mborders/artifex)](https://goreportcard.com/report/github.com/mborders/artifex)
+[![codecov](https://codecov.io/gh/mborders/artifex/branch/master/graph/badge.svg)](https://codecov.io/gh/mborders/artifex)
 
 # artifex
 
 Simple in-memory job queue for Golang using worker-based dispatching
 
-Documentation here: https://godoc.org/github.com/borderstech/artifex
+Documentation here: https://godoc.org/github.com/mborders/artifex
 
 ## Example Usage
 
