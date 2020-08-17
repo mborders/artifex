@@ -9,6 +9,8 @@ Simple in-memory job queue for Golang using worker-based dispatching
 
 Documentation here: https://godoc.org/github.com/mborders/artifex
 
+Cron jobs use the robfig/cron library: https://godoc.org/github.com/robfig/cron
+
 ## Example Usage
 
 ```go
@@ -31,6 +33,14 @@ dt, err := d.DispatchEvery(func() {
 
 // Stop a given DispatchTicker
 dt.Stop()
+
+// Returns a DispatchCron
+dc, err := d.DispatchCron(func() {
+  // do something every 1s
+}, "*/1 * * * * *")
+
+// Stop a given DispatchCron
+dc.Stop()
 
 // Stop a dispatcher and all its workers/tickers
 d.Stop()

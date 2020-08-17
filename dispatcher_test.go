@@ -160,6 +160,10 @@ func TestDispatcher_Stop(t *testing.T) {
 	}, time.Millisecond*100)
 	assert.NotNil(t, err)
 
+	_, err = d.DispatchCron(func() {
+	}, "*/1 * * * * *")
+	assert.NotNil(t, err)
+
 	time.Sleep(time.Millisecond * 100)
 	assert.Equal(t, 1, c)
 }
@@ -208,4 +212,46 @@ func TestDispatcher_StopTwice(t *testing.T) {
 
 	d.Stop()
 	d.Stop()
+}
+
+func TestDispatcher_DispatchCron(t *testing.T) {
+	c := 0
+	d := NewDispatcher(1, 3)
+	d.Start()
+
+	_, err := d.DispatchCron(func() {
+		c++
+	}, "*/1 * * * * *")
+	assert.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 3000)
+	assert.Equal(t, 3, c)
+}
+
+func TestDispatcher_DispatchCron_Stop(t *testing.T) {
+	c := 0
+	d := NewDispatcher(1, 3)
+	d.Start()
+
+	_, err := d.DispatchCron(func() {
+		c++
+	}, "*/1 * * * * *")
+	assert.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 3000)
+	d.Stop()
+	assert.Equal(t, 3, c)
+
+	time.Sleep(time.Second * 1)
+	assert.Equal(t, 3, c)
+}
+
+func TestDispatcher_DispatchCron_InvalidDefinition(t *testing.T) {
+	d := NewDispatcher(1, 3)
+	d.Start()
+
+	_, err := d.DispatchCron(func() {
+	}, "foobar")
+	assert.NotNil(t, err)
+	assert.Equal(t, "invalid cron definition", err.Error())
 }
