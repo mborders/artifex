@@ -2,6 +2,7 @@ package artifex
 
 import (
 	"errors"
+	"github.com/robfig/cron/v3"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Dispatcher struct {
 	maxQueue   int
 	workers    []*Worker
 	tickers    []*DispatchTicker
+	crons      []*DispatchCron
 	workerPool chan chan Job
 	jobQueue   chan Job
 	quit       chan bool
@@ -34,6 +36,7 @@ func NewDispatcher(maxWorkers int, maxQueue int) *Dispatcher {
 func (d *Dispatcher) Start() {
 	d.workers = []*Worker{}
 	d.tickers = []*DispatchTicker{}
+	d.crons = []*DispatchCron{}
 	d.workerPool = make(chan chan Job, d.maxWorkers)
 	d.jobQueue = make(chan Job, d.maxQueue)
 	d.quit = make(chan bool)
@@ -78,8 +81,13 @@ func (d *Dispatcher) Stop() {
 		d.tickers[i].Stop()
 	}
 
+	for i := range d.crons {
+		d.crons[i].Stop()
+	}
+
 	d.workers = []*Worker{}
 	d.tickers = []*DispatchTicker{}
+	d.crons = []*DispatchCron{}
 	d.quit <- true
 }
 
@@ -134,6 +142,28 @@ func (d *Dispatcher) DispatchEvery(run func(), interval time.Duration) (*Dispatc
 	return dt, nil
 }
 
+// DispatchEvery pushes the given job into the job queue
+// each time the cron definition is met
+func (d *Dispatcher) DispatchCron(run func(), cronStr string) (*DispatchCron, error) {
+	if !d.active {
+		return nil, errors.New("dispatcher is not active")
+	}
+
+	dc := &DispatchCron{cron: cron.New(cron.WithSeconds())}
+	d.crons = append(d.crons, dc)
+
+	_, err := dc.cron.AddFunc(cronStr, func() {
+		d.jobQueue <- Job{Run: run}
+	})
+
+	if err != nil {
+		return nil, errors.New("invalid cron definition")
+	}
+
+	dc.cron.Start()
+	return dc, nil
+}
+
 // DispatchTicker represents a dispatched job ticker
 // that executes on a given interval. This provides
 // a means for stopping the execution cycle from continuing.
@@ -146,4 +176,15 @@ type DispatchTicker struct {
 func (dt *DispatchTicker) Stop() {
 	dt.ticker.Stop()
 	dt.quit <- true
+}
+
+// DispatchCron represents a dispatched cron job
+// that executes using cron expression formats.
+type DispatchCron struct {
+	cron *cron.Cron
+}
+
+// Stops ends the execution cycle for the given cron.
+func (c *DispatchCron) Stop() {
+	c.cron.Stop()
 }
