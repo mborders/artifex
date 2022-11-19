@@ -2,6 +2,7 @@ package artifex
 
 import (
 	"errors"
+	"fmt"
 	"github.com/robfig/cron/v3"
 	"time"
 )
@@ -162,6 +163,36 @@ func (d *Dispatcher) DispatchCron(run func(), cronStr string) (*DispatchCron, er
 
 	dc.cron.Start()
 	return dc, nil
+}
+
+// DispatchBatch pushes multiple given jobs into the job queue
+// optionally separated from each other by a given time gap
+func (d *Dispatcher) DispatchBatch(runs []func(), gap time.Duration) error {
+	for !d.active {
+		return errors.New("dispatcher is not active")
+	}
+
+	for i, run := range runs {
+		if err := d.DispatchIn(run, time.Duration(int64(i)*int64(gap))); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DispatchCronBatch pushes a job into the queue to dispatch a batch of jobs once the given definition is met.
+// Jobs can optionally be separated from each other by a given time gap.
+func (d *Dispatcher) DispatchCronBatch(runs []func(), cronStr string, gap time.Duration) (*DispatchCron, error) {
+	for !d.active {
+		return nil, errors.New("dispatcher is not active")
+	}
+
+	return d.DispatchCron(func() {
+		if err := d.DispatchBatch(runs, gap); err != nil {
+			fmt.Println(fmt.Errorf("failed to dispatch batch of jobs, %w", err))
+		}
+	}, cronStr)
 }
 
 // DispatchTicker represents a dispatched job ticker

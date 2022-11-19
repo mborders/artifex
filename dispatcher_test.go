@@ -255,3 +255,87 @@ func TestDispatcher_DispatchCron_InvalidDefinition(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, "invalid cron definition", err.Error())
 }
+
+func TestDispatcher_DispatchBatch(t *testing.T) {
+	v := []bool{false, false, false}
+
+	d := NewDispatcher(1, 10)
+	d.Start()
+
+	jobs := make([]func(), len(v))
+	for i := 0; i < len(jobs); i++ {
+		j := i // https://github.com/golang/go/discussions/56413
+		jobs[j] = func() {
+			v[j] = true
+		}
+	}
+
+	err := d.DispatchBatch(jobs, time.Millisecond*300)
+	assert.Nil(t, err)
+
+	time.Sleep(time.Millisecond * 10) // t = 10
+	assert.True(t, v[0])
+	assert.False(t, v[1])
+	assert.False(t, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 310
+	assert.True(t, v[0])
+	assert.True(t, v[1])
+	assert.False(t, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 610
+	assert.True(t, v[0])
+	assert.True(t, v[1])
+	assert.True(t, v[2])
+}
+
+func TestDispatcher_DispatchCronBatch(t *testing.T) {
+	v := []int{0, 0, 0}
+
+	d := NewDispatcher(1, 10)
+	d.Start()
+
+	jobs := make([]func(), len(v))
+	for i := 0; i < len(jobs); i++ {
+		j := i // https://github.com/golang/go/discussions/56413
+		jobs[j] = func() {
+			v[j] = v[j] + 1
+		}
+	}
+
+	dc, err := d.DispatchCronBatch(jobs, "*/1 * * * * *", time.Millisecond*300)
+	assert.Nil(t, err)
+
+	diff := dc.cron.Entries()[0].Next.Sub(time.Now())
+	time.Sleep(diff) // starts at next full second
+
+	time.Sleep(time.Millisecond * 10) // t = 10
+	assert.Equal(t, 1, v[0])
+	assert.Equal(t, 0, v[1])
+	assert.Equal(t, 0, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 310
+	assert.Equal(t, 1, v[0])
+	assert.Equal(t, 1, v[1])
+	assert.Equal(t, 0, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 610
+	assert.Equal(t, 1, v[0])
+	assert.Equal(t, 1, v[1])
+	assert.Equal(t, 1, v[2])
+
+	time.Sleep(time.Millisecond * 400) // t = 1010
+	assert.Equal(t, 2, v[0])
+	assert.Equal(t, 1, v[1])
+	assert.Equal(t, 1, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 1310
+	assert.Equal(t, 2, v[0])
+	assert.Equal(t, 2, v[1])
+	assert.Equal(t, 1, v[2])
+
+	time.Sleep(time.Millisecond * 300) // t = 1610
+	assert.Equal(t, 2, v[0])
+	assert.Equal(t, 2, v[1])
+	assert.Equal(t, 2, v[2])
+}
