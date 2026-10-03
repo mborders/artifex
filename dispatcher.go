@@ -3,6 +3,7 @@ package artifex
 import (
     "errors"
     "github.com/robfig/cron/v3"
+    "sync"
     "time"
 )
 
@@ -212,14 +213,18 @@ func (d *Dispatcher) DispatchCronWithLocation(run func(), cronStr string, loc *t
 // that executes on a given interval. This provides
 // a means for stopping the execution cycle from continuing.
 type DispatchTicker struct {
-    ticker *time.Ticker
-    quit   chan bool
+    ticker   *time.Ticker
+    quit     chan bool
+    stopOnce sync.Once
 }
 
 // Stop ends the execution cycle for the given ticker.
+// Calling Stop more than once is safe.
 func (dt *DispatchTicker) Stop() {
-    dt.ticker.Stop()
-    dt.quit <- true
+    dt.stopOnce.Do(func() {
+        dt.ticker.Stop()
+        dt.quit <- true
+    })
 }
 
 // DispatchCron represents a dispatched cron job
